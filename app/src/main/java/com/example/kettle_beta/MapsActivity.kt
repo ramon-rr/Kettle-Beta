@@ -1,25 +1,28 @@
 package com.example.kettle_beta
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.*
+import java.util.*
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
-
-    private lateinit var mMap: GoogleMap
+    private val REQUEST_LOCATION_PERMISSION = 1
+    private lateinit var map: GoogleMap
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val TAG = MapsActivity::class.java.simpleName
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,11 +46,105 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      * installed Google Play services and returned to the app.
      */
     override fun onMapReady(googleMap: GoogleMap) {
-        mMap = googleMap
-        getLastKnownLocation(mMap);
+        map = googleMap
+        val homeLatLng = LatLng (33.467744917591745, -112.05699319635526)
+        val androidOverlay = GroundOverlayOptions()
+                .image(BitmapDescriptorFactory.fromResource(R.drawable.android))
+                .position(homeLatLng, 100f)
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(homeLatLng, 19f))
+        map.addGroundOverlay(androidOverlay)
 
-        // Add a marker in Sydney and move the camera
+        //map.addMarker(MarkerOptions().position(homeLatLng))
+        setMapLongClick(map)
+        setPoiClick(map)
+        setMapStyle(map)
+        enableMyLocation()
+        //getLastKnownLocation(map);
 
+    }
+
+    override fun onRequestPermissionsResult(
+            requestCode: Int,
+            permissions: Array<String>,
+            grantResults: IntArray) {
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.contains(PackageManager.PERMISSION_GRANTED)) {
+                enableMyLocation()
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun enableMyLocation() {
+        if (isPermissionGranted()) {
+            map.isMyLocationEnabled = true
+        }
+        else {
+            ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf<String>(Manifest.permission.ACCESS_FINE_LOCATION),
+                    REQUEST_LOCATION_PERMISSION
+            )
+        }
+    }
+
+    private fun isPermissionGranted() : Boolean {
+        return ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    }
+
+
+    private fun setMapStyle(map: GoogleMap){
+        try {
+            // Customize the styling of the base map using a JSON object defined
+            // in a raw resource file.
+            val success = map.setMapStyle(
+                    MapStyleOptions.loadRawResourceStyle(
+                            this,
+                            R.raw.map_style
+                    )
+            )
+
+            if (!success) {
+                Log.e(TAG, "Style parsing failed.")
+            }
+
+        }  catch (e: Resources.NotFoundException) {
+            Log.e(TAG, "Can't find style. Error: ", e)
+        }
+    }
+
+    private fun setPoiClick(map: GoogleMap){
+        map.setOnPoiClickListener { poi ->
+            val poiMarker = map.addMarker(
+                    MarkerOptions()
+                            .position(poi.latLng)
+                            .title(poi.name)
+            )
+            poiMarker.showInfoWindow()
+        }
+    }
+
+    private fun setMapLongClick(map: GoogleMap) {
+        map.setOnMapClickListener { latLng ->
+
+            val snippet = String.format(
+                    Locale.getDefault(),
+                    "Lat: %1$.5f, Long: %2$.5f",
+                    latLng.latitude,
+                    latLng.longitude
+            )
+
+            map.addMarker(
+                    MarkerOptions()
+                            .position(latLng)
+                            .title(getString(R.string.dropped_pin))
+                            .snippet(snippet)
+                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+
+            )
+        }
     }
 
 
@@ -76,8 +173,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     // use your location object
                     // get latitude , longitude and other info from this
                     val sydney = LatLng(location.latitude, location.longitude)
-                    mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-                    mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+                    map.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
+                    map.moveCamera(CameraUpdateFactory.newLatLng(sydney))
                 }
         }
     }
