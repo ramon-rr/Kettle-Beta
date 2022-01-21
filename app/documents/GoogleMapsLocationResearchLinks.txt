@@ -1,0 +1,5 @@
+android/location-samples: https://github.com/android/location-samples/blob/master/LocationUpdatesBackgroundKotlin/app/src/main/java/com/google/android/gms/location/sample/locationupdatesbackgroundkotlin/LocationUpdatesBroadcastReceiver.kt
+
+Receive location updates in Android with Kotlin: https://codelabs.developers.google.com/codelabs/while-in-use-location#2
+
+Advanced Android in Kotlin: https://developer.android.com/courses/kotlin-android-advanced/overview#lesson_1
